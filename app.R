@@ -144,7 +144,7 @@ ui <- secure_app(
           titlePanel(h5(p(" "), align = "left")),
           fileInput(
             input = "file1",
-            label = h4(p(strong(i18n$t("Charger le relevé d'identité bancaire (RIB)")))),
+            label = h4(p(strong(i18n$t("Charger le document")))),
             accept = c(".png", ".jpeg", ".jpg")
           ),
           uiOutput("UIselectInput"),
