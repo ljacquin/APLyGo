@@ -1,0 +1,37 @@
+{
+	"languages": ["Français", "English"],
+	"translation": [
+	  	{
+			"Français": "Chargement de l'application APLyGo...",
+			"English": "Loading APLyGo..."
+		},
+		{
+		  "Français": "Ne pas rafraichir la page, appuyer sur 'Réinitialiser' avant chaque nouvelle analyse",
+			"English": "Do not refresh the page, press 'Reset' before each new analysis"
+		},
+		{
+   	 "Français": "Réinitialiser",
+		 "English": "Reset"
+		},
+		{
+ 		  "Français": "Charger le relevé d'identité bancaire (RIB)",
+			"English": "Upload the bank account identity (BAI)"
+		},
+		{
+			"Français": "Remarques et recommandations :",
+			"English": "Remarks and recommendations :"
+		},
+		{
+		  "Français": "- Les résultats d'APLyGo doivent être vérifiés",
+			"English": "- APLyGo results should be verified"
+		},
+		{
+			"Français": "- Aucun résultat ni données ne sont stockés dans APLyGo",
+			"English": "- No result and data are saved in APLyGo"
+		},
+		{
+		  "Français": "Définir la langue de APLyGo",
+			"English": "Set APLyGo language"
+    }
+	]
+}
