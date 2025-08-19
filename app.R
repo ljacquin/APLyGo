@@ -36,6 +36,7 @@ library(shinycustomloader)
 library(shiny.i18n)
 library(shinyWidgets)
 library(RSQLite)
+library(dipsaus)
 # library(rstudioapi)
 # setwd(dirname(getActiveDocumentContext()$path))
 options(encoding = "UTF-8")
@@ -99,19 +100,19 @@ appCSS <- "
 ui <- secure_app(
   choose_language = FALSE,
   tags_top = tags$img(src = "aply_go_logo.png", width = 200, height = 180),
-
+  
   # ui <- fluidPage(
   fluidPage(
     HTML('<meta name="viewport" content="width=1024">'),
     useShinyjs(),
     inlineCSS(appCSS),
-
+    
     # loading message
     div(
       id = "loading-content",
       h2(i18n$t("Chargement de l'application APLyGo..."))
     ),
-
+    
     # language selection
     shiny.i18n::usei18n(i18n),
     div(
@@ -132,7 +133,7 @@ ui <- secure_app(
         )
       )
     ),
-
+    
     # main app code goes here
     div(
       id = "app-content",
@@ -142,7 +143,7 @@ ui <- secure_app(
           HTML('<center><img src="logo_moju_ai.png" width="180" height="180"></header>'),
           column(width = 1.5, offset = 10, style = "padding:6px;"),
           titlePanel(h5(p(" "), align = "left")),
-          fileInput(
+          fancyFileInput(
             input = "file1",
             label = h4(p(strong(i18n$t("Charger le document")))),
             accept = c(".png", ".jpeg", ".jpg")
@@ -153,10 +154,10 @@ ui <- secure_app(
           titlePanel(h5(p(" "), align = "left")),
           titlePanel(h4(p(strong(i18n$t("Remarques et recommandations :"))), style = "color:#A30000", align = "left")),
           titlePanel(h5(strong(i18n$t("- Les résultats d'APLyGo doivent être vérifiés")),
-            style = "color:#A30000", align = "left"
+                        style = "color:#A30000", align = "left"
           )),
           titlePanel(h5(strong(i18n$t("- Aucun résultat ni données ne sont stockés dans APLyGo")),
-            style = "color:#A30000", align = "left"
+                        style = "color:#A30000", align = "left"
           )),
           width = 3
         ),
@@ -173,7 +174,7 @@ ui <- secure_app(
           ),
           h4(verbatimTextOutput("text_"), align = "left"),
           withLoader(imageOutput("img_"),
-            type = "image", loader = "computation_loader_new.gif"
+                     type = "image", loader = "computation_loader_new.gif"
           )
         )
       )
@@ -185,26 +186,26 @@ ui <- secure_app(
 server <- shinyServer(
   function(input, output, session) {
     options(shiny.maxRequestSize = 4 * 1024^2)
-
+    
     # check credentials
     result_auth <- secure_server(check_credentials = check_credentials(cred_curr_mon_use_df))
     output$res_auth <- renderPrint({
       reactiveValuesToList(result_auth)
     })
-
+    
     # hide the loading message when the reset of the server function has executed
     hide(id = "loading-content", anim = TRUE, animType = "fade", time = 4)
-
+    
     # create reactive values for input file and patient id
     rv <- reactiveValues(
       file1 = NULL
     )
-
+    
     # set input file during non analysis state only
     observeEvent(input$file1, {
       rv$file1 <- input$file1
     })
-
+    
     # set language during non analysis state only
     observeEvent(input$selected_language, {
       res <- list_out_aply_go()
@@ -212,61 +213,61 @@ server <- shinyServer(
         shiny.i18n::update_lang(session, input$selected_language)
       }
     })
-
+    
     # print results
     observeEvent(input$print, {
       js$winprint()
     })
-
+    
     # make aply go computations and return results as a list
     list_out_aply_go <- reactive({
       # initialize an empty list for aply go results
       list_out_aply_go <- list(
         text_ = NULL
       )
-
+      
       if (!is.null(unlist(rv$file1)) && as.numeric(rv$file1$size) > 1 &&
-        tolower(file_ext(rv$file1$datapath)) %in% c("jpg", "jpeg", "png", "tiff", "bmp", "pdf")) {
+          tolower(file_ext(rv$file1$datapath)) %in% c("jpg", "jpeg", "png", "tiff", "bmp", "pdf")) {
         # extract text from file
         text_ <- extract_text_from_file(rv$file1$datapath)
-
+        
         if (nchar(text_) > 5) {
           # create a connection to aply suite db and disconnect on exit
           db_connect <- dbConnect(SQLite(), dbname = dbname_)
           on.exit(DBI::dbDisconnect(db_connect))
-
+          
           # update login usage
           auth_ind <- as.character(reactiveValuesToList(result_auth))
-
+          
           # get last updated data frame to track usage
           aply_go_cred_curr_mon_use_df <- as.data.frame(dbReadTable(
             db_connect,
             "aply_go_credential_current_month_usage"
           ))
           id_subscriber_curr_mon <- na.omit(match(auth_ind, aply_go_cred_curr_mon_use_df$Login))
-
+          
           if (length(id_subscriber_curr_mon) > 0) {
             current_count <- aply_go_cred_curr_mon_use_df[id_subscriber_curr_mon, ]$Count
             aply_go_cred_curr_mon_use_df[id_subscriber_curr_mon, ]$Count <- current_count + 1
             aply_go_cred_curr_mon_use_df[id_subscriber_curr_mon, ]$Last_analysis_timestamp <-
               paste0(as.character(Sys.time()), "sec")
             dbWriteTable_(db_connect, "aply_go_credential_current_month_usage",
-              aply_go_cred_curr_mon_use_df,
-              overwrite_ = T
+                          aply_go_cred_curr_mon_use_df,
+                          overwrite_ = T
             )
           }
-
+          
           list_out_aply_go$text_ <- text_
         }
       }
       list_out_aply_go
     })
-
+    
     # output image
     output$img_ <- renderImage(
       {
         res <- list_out_aply_go()
-
+        
         test_render_img <- (
           !is.null(unlist(rv$file1)) &&
             as.numeric(rv$file1$size) > 1 &&
@@ -274,7 +275,7 @@ server <- shinyServer(
             !is.null(res$text_) &&
             nchar(res$text_) > 5
         )
-
+        
         if (!test_render_img) {
           list(
             src = "www/aply_go_background.png",
@@ -283,9 +284,9 @@ server <- shinyServer(
           )
         } else {
           tmpF_img <- tempfile(fileext = ".png")
-
+          
           file_ext <- tolower(file_ext(rv$file1$datapath))
-
+          
           if (file_ext %in% c("jpg", "jpeg", "png", "tiff", "bmp")) {
             img_ <- image_read(rv$file1$datapath)
             width_ <- 1200
@@ -306,7 +307,7 @@ server <- shinyServer(
       },
       deleteFile = F
     )
-
+    
     # render text for ui
     output$text_ <- renderText({
       res <- list_out_aply_go()
