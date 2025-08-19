@@ -139,7 +139,7 @@ ui <- secure_app(
       titlePanel("", windowTitle = "APLyGo"),
       sidebarLayout(
         sidebarPanel(
-          HTML('<center><img src="logo_moju_ai.png" width="200" height="180"></header>'),
+          HTML('<center><img src="logo_moju_ai.png" width="180" height="180"></header>'),
           column(width = 1.5, offset = 10, style = "padding:6px;"),
           titlePanel(h5(p(" "), align = "left")),
           fileInput(
