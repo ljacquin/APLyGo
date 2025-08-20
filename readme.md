@@ -1,4 +1,4 @@
-[<img src="www/aply_go_logo.png"/>](https://secured.moju-apps.fr/aply_go/)
+[<img src="www/aply_go_logo.png" width="300"/>](https://secured.moju-apps.fr/aply_go/)
 
 # [APLyGo](https://secured.moju-apps.fr/aply_go/)
 
