@@ -1,25 +1,25 @@
 {
 	"languages": ["Français", "English"],
 	"translation": [
-	  	{
+	  {
 			"Français": "Chargement de l'application APLyGo...",
 			"English": "Loading APLyGo..."
 		},
 		{
-		  "Français": "Ne pas rafraichir la page, appuyer sur 'Réinitialiser' avant chaque nouvelle analyse",
-			"English": "Do not refresh the page, press 'Reset' before each new analysis"
+ 		  "Français": "Glisser-déposer le fichier",
+			"English": "Drag-and-drop the file"
 		},
 		{
-   	 "Français": "Réinitialiser",
-		 "English": "Reset"
+			"Français": "Rotation automatique d'image",
+			"English": "Automatic image rotation"
 		},
 		{
- 		  "Français": "Charger le document",
-			"English": "Upload the document"
+		  "Français": "Remarques et recommandations :",
+			"English": "Notes and recommendations :"
 		},
 		{
-			"Français": "Remarques et recommandations :",
-			"English": "Remarks and recommendations :"
+			"Français": "- ⚠️ La rotation automatique doit être appliquée uniquement aux images mal orientées, car elle ralentit le traitement des images déjà correctement orientées",
+			"English": "- ⚠️ Automatic rotation should be applied only to misoriented images as it slows down processing for images that are already correctly oriented"
 		},
 		{
 		  "Français": "- Les résultats d'APLyGo doivent être vérifiés",

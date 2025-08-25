@@ -41,7 +41,6 @@ clean_text_ <- function(text_) {
   lines_unique <- unique(lines_filtered)
 
   # remove near-duplicates (OCR variations)
-  library(stringdist)
   similarity_threshold <- 0.95
   keep_flags <- rep(TRUE, length(lines_unique))
 
@@ -63,22 +62,46 @@ clean_text_ <- function(text_) {
   return(final_text)
 }
 
+# function which rotates image automatically
+rotate_image_auto <- function(angles_ = c(0, 90, 180, 270),
+                              image_, ocr_engine) {
+  scores <- sapply(angles_, function(a) {
+    rotated <- image_rotate(image_, a)
+    txt <- ocr(rotated, engine = ocr_engine)
+    nchar(gsub("\\s+", "", txt))
+  })
+  best_angle <- angles_[which.max(scores)]
+  return(image_rotate(image_, best_angle))
+}
+
 # main function to extract text
-extract_text_from_file <- function(file_path) {
+extract_text_img_from_file <- function(file_path, rot_img_auto_ = T) {
   file_ext <- tolower(file_ext(file_path))
   ocr_engine <- tesseract("fra+eng") # french + english
 
   if (file_ext %in% c("jpg", "jpeg", "png", "tiff", "bmp")) {
     message("image file detected, applying ocr...")
     image <- image_read(file_path)
-
+    if (rot_img_auto_) {
+      image <- rotate_image_auto(
+        image_ = image,
+        ocr_engine = ocr_engine
+      )
+    }
     if (length(image) > 1) {
-      extracted_text <- sapply(image, function(img) ocr(img, engine = ocr_engine))
+      extracted_text <- sapply(
+        image, function(img) ocr(img, engine = ocr_engine)
+      )
       extracted_text <- paste(extracted_text, collapse = "\n\n--- page ---\n\n")
     } else {
       extracted_text <- ocr(image, engine = ocr_engine)
     }
-    return(clean_text_(extracted_text))
+    return(
+      list(
+        "text_" = clean_text_(extracted_text),
+        "img_" = image
+      )
+    )
   } else if (file_ext == "pdf") {
     message("pdf file detected")
     pdf_text_content <- pdf_text(file_path)
@@ -86,14 +109,23 @@ extract_text_from_file <- function(file_path) {
 
     if (nchar(gsub("\\s+", "", extracted_text)) > 20) {
       message("text detected and extracted from pdf")
-      return(clean_text_(extracted_text))
+      return(
+        list(
+          "text_" = clean_text_(extracted_text),
+          "img_" = NULL
+        )
+      )
     } else {
       message("pdf with no detectable text, conversion to image before ocr...")
       images <- image_read_pdf(file_path, density = 300)
-
       ocr_text <- sapply(images, function(img) ocr(img, engine = ocr_engine))
       extracted_text <- paste(ocr_text, collapse = "\n\n--- next page ---\n\n")
-      return(clean_text_(extracted_text))
+      return(
+        list(
+          "text_" = clean_text_(extracted_text),
+          "img_" = image
+        )
+      )
     }
   } else {
     stop("file extension non supported")

@@ -100,19 +100,19 @@ appCSS <- "
 ui <- secure_app(
   choose_language = FALSE,
   tags_top = tags$img(src = "aply_go_logo.png", width = 200, height = 180),
-  
+
   # ui <- fluidPage(
   fluidPage(
     HTML('<meta name="viewport" content="width=1024">'),
     useShinyjs(),
     inlineCSS(appCSS),
-    
+
     # loading message
     div(
       id = "loading-content",
       h2(i18n$t("Chargement de l'application APLyGo..."))
     ),
-    
+
     # language selection
     shiny.i18n::usei18n(i18n),
     div(
@@ -133,7 +133,7 @@ ui <- secure_app(
         )
       )
     ),
-    
+
     # main app code goes here
     div(
       id = "app-content",
@@ -145,8 +145,15 @@ ui <- secure_app(
           titlePanel(h5(p(" "), align = "left")),
           fancyFileInput(
             input = "file1",
-            label = h4(p(strong(i18n$t("Charger le document")))),
+            label = h4(p(strong(i18n$t("Glisser-déposer le fichier")))),
             accept = c(".png", ".jpeg", ".jpg")
+          ),
+          radioButtons(
+            inputId = "rot_img_auto",
+            label = h4(strong(i18n$t("Rotation automatique d'image"))),
+            choices = c("Non-auto" = "FALSE", "Auto" = "TRUE"),
+            selected = "FALSE",
+            inline = TRUE
           ),
           uiOutput("UIselectInput"),
           verbatimTextOutput("res_auth"),
@@ -154,9 +161,12 @@ ui <- secure_app(
           titlePanel(h5(p(" "), align = "left")),
           titlePanel(h4(p(strong(i18n$t("Remarques et recommandations :"))), style = "color:#A30000", align = "left")),
           titlePanel(h5(strong(i18n$t("- Les résultats d'APLyGo doivent être vérifiés")),
-                        style = "color:#A30000", align = "left"
+            style = "color:#A30000", align = "left"
           )),
           titlePanel(h5(strong(i18n$t("- Aucun résultat ni données ne sont stockés dans APLyGo")),
+            style = "color:#A30000", align = "left"
+          )),
+          titlePanel(h5(strong(i18n$t("- ⚠️ La rotation automatique doit être appliquée uniquement aux images mal orientées, car elle ralentit le traitement des images déjà correctement orientées")),
                         style = "color:#A30000", align = "left"
           )),
           width = 3
@@ -174,7 +184,7 @@ ui <- secure_app(
           ),
           h4(verbatimTextOutput("text_"), align = "left"),
           withLoader(imageOutput("img_"),
-                     type = "image", loader = "computation_loader_new.gif"
+            type = "image", loader = "computation_loader_new.gif"
           )
         )
       )
@@ -186,96 +196,96 @@ ui <- secure_app(
 server <- shinyServer(
   function(input, output, session) {
     options(shiny.maxRequestSize = 4 * 1024^2)
-    
+
     # check credentials
     result_auth <- secure_server(check_credentials = check_credentials(cred_curr_mon_use_df))
     output$res_auth <- renderPrint({
       reactiveValuesToList(result_auth)
     })
-    
+
     # hide the loading message when the reset of the server function has executed
     hide(id = "loading-content", anim = TRUE, animType = "fade", time = 4)
-    
+
     # create reactive values for input file and patient id
     rv <- reactiveValues(
       file1 = NULL
     )
-    
+
     # set input file during non analysis state only
     observeEvent(input$file1, {
       rv$file1 <- input$file1
     })
-    
+
     # set language during non analysis state only
     observeEvent(input$selected_language, {
-      res <- list_out_aply_go()
-      if (is.null(res$text_)) {
+      if (is.null(list_out_aply_go()$text_)) {
         shiny.i18n::update_lang(session, input$selected_language)
       }
     })
-    
+
     # print results
     observeEvent(input$print, {
       js$winprint()
     })
-    
+
     # make aply go computations and return results as a list
     list_out_aply_go <- reactive({
       # initialize an empty list for aply go results
       list_out_aply_go <- list(
-        text_ = NULL
+        text_ = NULL,
+        img_ = NULL
       )
-      
+
       if (!is.null(unlist(rv$file1)) && as.numeric(rv$file1$size) > 1 &&
-          tolower(file_ext(rv$file1$datapath)) %in% c("jpg", "jpeg", "png", "tiff", "bmp", "pdf")) {
-        # extract text from file
-        text_ <- extract_text_from_file(rv$file1$datapath)
-        
-        if (nchar(text_) > 5) {
-          # create a connection to aply suite db and disconnect on exit
-          db_connect <- dbConnect(SQLite(), dbname = dbname_)
-          on.exit(DBI::dbDisconnect(db_connect))
-          
-          # update login usage
-          auth_ind <- as.character(reactiveValuesToList(result_auth))
-          
-          # get last updated data frame to track usage
-          aply_go_cred_curr_mon_use_df <- as.data.frame(dbReadTable(
-            db_connect,
-            "aply_go_credential_current_month_usage"
-          ))
-          id_subscriber_curr_mon <- na.omit(match(auth_ind, aply_go_cred_curr_mon_use_df$Login))
-          
-          if (length(id_subscriber_curr_mon) > 0) {
-            current_count <- aply_go_cred_curr_mon_use_df[id_subscriber_curr_mon, ]$Count
-            aply_go_cred_curr_mon_use_df[id_subscriber_curr_mon, ]$Count <- current_count + 1
-            aply_go_cred_curr_mon_use_df[id_subscriber_curr_mon, ]$Last_analysis_timestamp <-
-              paste0(as.character(Sys.time()), "sec")
-            dbWriteTable_(db_connect, "aply_go_credential_current_month_usage",
-                          aply_go_cred_curr_mon_use_df,
-                          overwrite_ = T
-            )
-          }
-          
-          list_out_aply_go$text_ <- text_
+        tolower(file_ext(rv$file1$datapath)) %in% c("jpg", "jpeg", "png", "tiff", "bmp", "pdf")) {
+        # should image be rotated automatically
+        rot_img_auto_choice <- as.logical(input$rot_img_auto)
+
+        # extract text and image from file
+        list_out_aply_go <- extract_text_img_from_file(
+          rv$file1$datapath,
+          rot_img_auto_ = rot_img_auto_choice
+        )
+
+        # create a connection to aply suite db and disconnect on exit
+        db_connect <- dbConnect(SQLite(), dbname = dbname_)
+        on.exit(DBI::dbDisconnect(db_connect))
+
+        # update login usage
+        auth_ind <- as.character(reactiveValuesToList(result_auth))
+
+        # get last updated data frame to track usage
+        aply_go_cred_curr_mon_use_df <- as.data.frame(dbReadTable(
+          db_connect,
+          "aply_go_credential_current_month_usage"
+        ))
+        id_subscriber_curr_mon <- na.omit(match(auth_ind, aply_go_cred_curr_mon_use_df$Login))
+
+        if (length(id_subscriber_curr_mon) > 0) {
+          current_count <- aply_go_cred_curr_mon_use_df[id_subscriber_curr_mon, ]$Count
+          aply_go_cred_curr_mon_use_df[id_subscriber_curr_mon, ]$Count <- current_count + 1
+          aply_go_cred_curr_mon_use_df[id_subscriber_curr_mon, ]$Last_analysis_timestamp <-
+            paste0(as.character(Sys.time()), "sec")
+          dbWriteTable_(db_connect, "aply_go_credential_current_month_usage",
+            aply_go_cred_curr_mon_use_df,
+            overwrite_ = T
+          )
         }
       }
       list_out_aply_go
     })
-    
+
     # output image
     output$img_ <- renderImage(
       {
-        res <- list_out_aply_go()
-        
         test_render_img <- (
           !is.null(unlist(rv$file1)) &&
             as.numeric(rv$file1$size) > 1 &&
-            !is.null(res) &&
-            !is.null(res$text_) &&
-            nchar(res$text_) > 5
+            !is.null(list_out_aply_go()) &&
+            !is.null(list_out_aply_go()$text_) &&
+            nchar(list_out_aply_go()$text_) > 5
         )
-        
+
         if (!test_render_img) {
           list(
             src = "www/aply_go_background.png",
@@ -284,11 +294,10 @@ server <- shinyServer(
           )
         } else {
           tmpF_img <- tempfile(fileext = ".png")
-          
           file_ext <- tolower(file_ext(rv$file1$datapath))
-          
+
           if (file_ext %in% c("jpg", "jpeg", "png", "tiff", "bmp")) {
-            img_ <- image_read(rv$file1$datapath)
+            img_ <- list_out_aply_go()$img_
             width_ <- 1200
             height_ <- 550
           } else if (file_ext == "pdf") {
@@ -296,6 +305,7 @@ server <- shinyServer(
             width_ <- 1000
             height_ <- 1200
           }
+
           magick::image_write(img_, path = tmpF_img, format = "png")
           list(
             src = tmpF_img,
@@ -307,12 +317,12 @@ server <- shinyServer(
       },
       deleteFile = F
     )
-    
+
     # render text for ui
     output$text_ <- renderText({
-      res <- list_out_aply_go()
-      if (!is.null(res) && !is.null(res$text_)) {
-        res$text_
+      if (!is.null(list_out_aply_go()) &&
+        !is.null(list_out_aply_go()$text_)) {
+        list_out_aply_go()$text_
       } else {
         ""
       }
