@@ -6,8 +6,16 @@
 			"English": "Loading APLyGo..."
 		},
 		{
- 		  "Français": "Glisser-déposer le fichier",
-			"English": "Drag-and-drop the file"
+ 		  "Français": "Coller (Ctrl + V) une capture d'écran dans APLyGo",
+			"English": "Paste a screenshot into APLyGo (Ctrl + V)"
+		},
+		{
+ 		  "Français": "ou",
+			"English": "or"
+		},
+		{
+ 		  "Français": "Glisser-déposer un fichier ci-dessous",
+			"English": "Drag and drop a file below"
 		},
 		{
 			"Français": "Rotation automatique d'image",
