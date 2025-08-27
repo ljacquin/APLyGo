@@ -173,7 +173,7 @@ ui <- secure_app(
           ),
           h4(verbatimTextOutput("text_"), align = "left"),
           withLoader(imageOutput("img_"),
-            type = "image", loader = "computation_loader_new.gif"
+            type = "image", loader = "computation_loader.gif"
           )
         )
       )
